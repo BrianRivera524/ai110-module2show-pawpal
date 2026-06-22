@@ -118,11 +118,65 @@ detect_conflicts(): checks for tasks scheduled at the same time
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
+My scheduler considers a few main constraints: task time, 
+task priority, task duration, completion status, frequency, 
+and the owner's available care time. Time is used to sort 
+tasks into a readable schedule, priority is used to decide 
+which tasks should be handled first, duration is used to 
+make sure the daily plan fits within the owner's available 
+minutes, and completion status is used so completed tasks 
+are not included again in the daily plan.
+
+I decided that priority and available time mattered the 
+most because the main goal of PawPal+ is to help a pet 
+owner choose what care tasks can realistically be completed 
+in a day. High-priority tasks, such as medication or feeding, 
+should be scheduled before lower-priority tasks, such as play 
+time. I also kept the time format simple by using 24-hour 
+HH:MM strings, which makes sorting tasks easier while keeping 
+the code readable.
 
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
+
+One tradeoff my scheduler makes is that conflict detection 
+only checks for exact time matches. For example, it can detect 
+two tasks both scheduled at '09:00', but it does not detect 
+overlapping durations, such as a 30-minute task at '09:00' 
+and another task at '09:15'. I chose this simpler approach 
+because it keeps the scheduler easier to understand while 
+still demonstrating basic conflict detection. In a future 
+version, I could improve this by converting task times into 
+real time objects and comparing start and end times.
+
+
+
+## Smarter Scheduling
+
+PawPal+ includes several smarter scheduling features to make the app more useful for a pet owner.
+
+| Feature  |  Method  |  Description  |
+| -------- | -------- | ------------- |
+| Sort tasks by time | 'Scheduler.sort_tasks_by_time()' | Sorts all tasks by their scheduled time using 24-hour 'HH:MM' format. This helps display the daily schedule in the correct order. |
+
+| Sort tasks by priority | 'Scheduler.sort_tasks_by_priority()' | Sorts tasks so higher-priority care tasks, such as feeding or medication, are considered before lower-priority tasks. |
+
+| Filter tasks by pet | 'Scheduler.filter_tasks_by_pet(pet_name)' | Returns only the tasks that belong to a selected pet. This helps the owner view one pet's care plan at a time. |
+
+| Filter tasks by status | 'Scheduler.filter_tasks_by_status(completed)' | Returns either completed or pending tasks. This helps the owner track what still needs to be done. |
+
+| Generate daily plan | 'Scheduler.generate_daily_plan()' | Builds a daily plan using priority, task duration, completion status, and the owner's available care time. |
+
+| Conflict detection | 'Scheduler.detect_conflicts()' | Checks for tasks scheduled at the exact same time and returns conflicts as warnings instead of crashing the program. |
+
+| Recurring tasks | 'Task.create_next_occurrence()' and 'Scheduler.mark_task_complete()' | When a daily or weekly task is completed, the scheduler creates a new copy of that task for the next due date. |
+
+One current tradeoff is that conflict detection only checks for exact time matches. 
+For example, it detects two tasks both scheduled at '09:00', but it does not detect 
+overlapping durations such as a 30-minute task at '09:00' and another task at '09:15'. 
+This keeps the first version simpler and easier to understand.
 
 ---
 

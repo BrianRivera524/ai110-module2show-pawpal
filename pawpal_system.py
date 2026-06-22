@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 
 
 def normalize_time(time_str):
@@ -10,6 +11,25 @@ def normalize_time(time_str):
     return f"{int(hour):02d}:{int(minute):02d}"
 
 
+def get_today_string():
+    """Return today's date as a YYYY-MM-DD string."""
+    return date.today().isoformat()
+
+
+def get_next_due_date(due_date, frequency):
+    """Return the next due date for a recurring task."""
+    current_date = datetime.strptime(due_date, "%Y-%m-%d").date()
+
+    if frequency == "daily":
+        next_date = current_date + timedelta(days=1)
+    elif frequency == "weekly":
+        next_date = current_date + timedelta(weeks=1)
+    else:
+        next_date = current_date
+
+    return next_date.isoformat()
+
+
 @dataclass
 class Task:
     title: str
@@ -19,6 +39,7 @@ class Task:
     time: str = ""
     frequency: str = "once"
     completed: bool = False
+    due_date: str = field(default_factory=get_today_string)
 
     def __post_init__(self):
         """Normalize the task time after the task is created."""
@@ -36,9 +57,30 @@ class Task:
         """Return True if this task repeats daily or weekly."""
         return self.frequency in ["daily", "weekly"]
 
+    def create_next_occurrence(self):
+        """Create the next copy of a recurring task."""
+        if not self.is_recurring():
+            return None
+
+        next_due_date = get_next_due_date(self.due_date, self.frequency)
+
+        return Task(
+            title=self.title,
+            duration_minutes=self.duration_minutes,
+            priority=self.priority,
+            pet_name=self.pet_name,
+            time=self.time,
+            frequency=self.frequency,
+            completed=False,
+            due_date=next_due_date
+        )
+
     def summary(self):
         """Return a readable summary of the task."""
-        return f"{self.time} — {self.title} for {self.pet_name} ({self.duration_minutes} min) [priority: {self.priority}]"
+        return (
+            f"{self.due_date} {self.time} — {self.title} for {self.pet_name} "
+            f"({self.duration_minutes} min) [priority: {self.priority}]"
+        )
 
 
 @dataclass
@@ -168,3 +210,20 @@ class Scheduler:
                 seen_times[task.time] = task
 
         return conflicts
+
+    def mark_task_complete(self, pet_name, task_title):
+        """Complete a task and create its next occurrence if recurring."""
+        for pet in self.owner.get_pets():
+            if pet.name == pet_name:
+                for task in pet.get_tasks():
+                    if task.title == task_title and not task.completed:
+                        task.mark_complete()
+
+                        next_task = task.create_next_occurrence()
+
+                        if next_task is not None:
+                            pet.add_task(next_task)
+
+                        return task, next_task
+
+        return None, None
