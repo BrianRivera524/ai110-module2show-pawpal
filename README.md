@@ -26,11 +26,11 @@ Your final app should:
 
 ### Setup
 
-```bash
+'''bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
+'''
 
 ### Suggested workflow
 
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 3. Convert UML into Python class stubs (no logic yet).
 4. Implement scheduling logic in small increments.
 5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
+6. Connect your logic to the Streamlit UI in 'app.py'.
 7. Refine UML so it matches what you actually built.
 
 ## 🖥️ Sample Output
@@ -47,8 +47,6 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 '''
-## Sample Output
-
 After running:
 
 python main.py
@@ -170,4 +168,38 @@ at the exact same time.
 
 10. Use Reset app to clear the current owner, pets, and tasks and start over.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+**Screenshot or video** *(optional)*: <!-- Added -->
+
+
+## Features ##
+
+PawPal+ includes the following core features:
+
+* **Owner and pet management:** Users can create an owner 
+profile and add pets to that owner.
+
+* **Task creation:** Users can add care tasks with a title, 
+duration, priority, time, frequency, and pet assignment.
+
+* **Sorting by time:** The scheduler uses 'Scheduler.sort_tasks_by_time()' 
+to display tasks in chronological order using 24-hour 'HH:MM' format.
+
+* **Priority-based daily planning:** The scheduler uses 'Scheduler.generate_daily_plan()' 
+to choose tasks based on priority, duration, completion status, and the owner's available care time.
+
+* **Filtering by pet:** The scheduler uses 'Scheduler.filter_tasks_by_pet(pet_name)' 
+so users can view tasks for one pet at a time.
+
+* **Filtering by status:** The scheduler uses 'Scheduler.filter_tasks_by_status(completed)' 
+so users can view pending or completed tasks.
+
+* **Conflict warnings:** The scheduler uses 'Scheduler.detect_conflicts()' 
+to warn users when two tasks are scheduled at the exact same time.
+
+* **Recurring tasks:** The app uses 'Task.create_next_occurrence()' and 
+'Scheduler.mark_task_complete()' so daily or weekly tasks create a new 
+future task when completed.
+
+* **Streamlit session memory:** The app stores the owner object in 
+'st.session_state' so pets and tasks persist while the user interacts with the app.
+

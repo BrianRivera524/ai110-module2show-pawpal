@@ -1,15 +1,9 @@
 import streamlit as st
-from pawpal_system import Owner, Pet, Task, Scheduler
+from pawpal_system import Owner, Pet, Task, Scheduler, get_today_string
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 st.title("🐾 PawPal+")
-
-# ---------------------------------------------------------
-# Session State Setup
-# ---------------------------------------------------------
-# Streamlit reruns this file every time a button is clicked.
-# st.session_state keeps the Owner object saved between reruns.
 
 if "owner" not in st.session_state:
     st.session_state.owner = Owner("Jordan", available_minutes=60)
@@ -18,9 +12,10 @@ st.markdown(
     """
 Welcome to the PawPal+ starter app.
 
-This app now connects the Streamlit UI to the backend logic in `pawpal_system.py`.
+This app connects the Streamlit UI to the backend logic in `pawpal_system.py`.
 
-Use this app as your interactive demo to add pets, add tasks, and generate a schedule.
+Use this app to add pets, add care tasks, complete tasks, create recurring tasks,
+filter tasks, check conflicts, and generate a daily schedule.
 """
 )
 
@@ -61,10 +56,8 @@ available_minutes = st.number_input(
 )
 
 if st.button("Save owner info"):
-    # Update the saved owner object in session state
     st.session_state.owner.name = owner_name
     st.session_state.owner.available_minutes = int(available_minutes)
-
     st.success(f"Saved owner info for {owner_name}.")
 
 st.divider()
@@ -87,7 +80,6 @@ if st.button("Add pet"):
     except ValueError as error:
         st.error(str(error))
 
-# Display current pets
 pets = st.session_state.owner.get_pets()
 
 if pets:
@@ -145,6 +137,8 @@ else:
 
     frequency = st.selectbox("Frequency", ["once", "daily", "weekly"])
 
+    due_date = st.date_input("Due date", value=None)
+
     if st.button("Add task"):
         selected_pet = None
 
@@ -155,13 +149,19 @@ else:
         if selected_pet is None:
             st.error("Selected pet was not found.")
         else:
+            if due_date is None:
+                due_date_string = get_today_string()
+            else:
+                due_date_string = due_date.isoformat()
+
             new_task = Task(
                 title=task_title,
                 duration_minutes=int(duration),
                 priority=priority,
                 pet_name=selected_pet.name,
                 time=task_time,
-                frequency=frequency
+                frequency=frequency,
+                due_date=due_date_string
             )
 
             try:
@@ -173,33 +173,126 @@ else:
 st.divider()
 
 # ---------------------------------------------------------
-# Current Tasks
+# Scheduler Setup
 # ---------------------------------------------------------
 
-st.subheader("Current Tasks")
-
 scheduler = Scheduler(st.session_state.owner)
-tasks = scheduler.sort_tasks_by_time()
 
-if tasks:
-    task_table = []
+# ---------------------------------------------------------
+# Pending Tasks
+# ---------------------------------------------------------
 
-    for task in tasks:
-        task_table.append(
+st.subheader("Pending Tasks")
+
+pending_tasks = scheduler.filter_tasks_by_status(False)
+pending_tasks = sorted(pending_tasks, key=lambda task: (task.due_date, task.time))
+
+if pending_tasks:
+    pending_table = []
+
+    for task in pending_tasks:
+        pending_table.append(
             {
+                "Due Date": task.due_date,
                 "Time": task.time,
                 "Task": task.title,
                 "Pet": task.pet_name,
                 "Duration": task.duration_minutes,
                 "Priority": task.priority,
-                "Frequency": task.frequency,
-                "Completed": task.completed
+                "Frequency": task.frequency
             }
         )
 
-    st.table(task_table)
+    st.table(pending_table)
 else:
-    st.info("No tasks yet. Add one above.")
+    st.info("No pending tasks. Nice job!")
+
+st.divider()
+
+# ---------------------------------------------------------
+# Completed Tasks
+# ---------------------------------------------------------
+
+st.subheader("Completed Tasks")
+
+completed_tasks = scheduler.filter_tasks_by_status(True)
+completed_tasks = sorted(completed_tasks, key=lambda task: (task.due_date, task.time))
+
+if completed_tasks:
+    completed_table = []
+
+    for task in completed_tasks:
+        completed_table.append(
+            {
+                "Due Date": task.due_date,
+                "Time": task.time,
+                "Task": task.title,
+                "Pet": task.pet_name,
+                "Duration": task.duration_minutes,
+                "Priority": task.priority,
+                "Frequency": task.frequency
+            }
+        )
+
+    st.table(completed_table)
+else:
+    st.info("No completed tasks yet.")
+
+st.divider()
+
+# ---------------------------------------------------------
+# Complete Task
+# ---------------------------------------------------------
+
+st.subheader("Complete Task")
+st.caption(
+    "Mark a pending task complete. Daily tasks create tomorrow's task. "
+    "Weekly tasks create next week's task."
+)
+
+pending_tasks = scheduler.filter_tasks_by_status(False)
+pending_tasks = sorted(pending_tasks, key=lambda task: (task.due_date, task.time))
+
+if not pending_tasks:
+    st.info("No pending tasks to complete.")
+else:
+    task_options = [
+        f"{task.pet_name} - {task.title} at {task.time} on {task.due_date}"
+        for task in pending_tasks
+    ]
+
+    selected_task_label = st.selectbox("Choose a task to complete", task_options)
+
+    if st.button("Mark task complete"):
+        selected_index = task_options.index(selected_task_label)
+        selected_task = pending_tasks[selected_index]
+
+        completed_task, next_task = scheduler.mark_task_complete(
+            selected_task.pet_name,
+            selected_task.title
+        )
+
+        if completed_task is None:
+            st.error("Task could not be completed.")
+        else:
+            st.success(
+                f"Completed {completed_task.title} for "
+                f"{completed_task.pet_name} on {completed_task.due_date}."
+            )
+
+            if next_task is not None:
+                if completed_task.frequency == "daily":
+                    st.info(
+                        f"Created next daily task for tomorrow: "
+                        f"{next_task.title} on {next_task.due_date} at {next_task.time}."
+                    )
+                elif completed_task.frequency == "weekly":
+                    st.info(
+                        f"Created next weekly task for next week: "
+                        f"{next_task.title} on {next_task.due_date} at {next_task.time}."
+                    )
+            else:
+                st.info("This was a one-time task, so no new task was created.")
 
 st.divider()
 
@@ -220,6 +313,7 @@ else:
 
     if st.button("Filter by pet"):
         filtered_tasks = scheduler.filter_tasks_by_pet(selected_filter_pet)
+        filtered_tasks = sorted(filtered_tasks, key=lambda task: (task.due_date, task.time))
 
         if not filtered_tasks:
             st.info(f"No tasks found for {selected_filter_pet}.")
@@ -231,6 +325,7 @@ else:
             for task in filtered_tasks:
                 filtered_table.append(
                     {
+                        "Due Date": task.due_date,
                         "Time": task.time,
                         "Task": task.title,
                         "Pet": task.pet_name,
@@ -256,14 +351,14 @@ if st.button("Generate schedule"):
     daily_plan = scheduler.generate_daily_plan()
 
     if not daily_plan:
-        st.warning("No tasks could be scheduled.")
+        st.warning("No tasks could be scheduled for today.")
     else:
         st.markdown("### Today's Schedule")
 
         for task in daily_plan:
             st.markdown(
                 f"""
-**{task.time} - {task.title}**
+**{task.due_date} {task.time} - {task.title}**
 
 Pet: {task.pet_name}  
 Duration: {task.duration_minutes} minutes  
@@ -273,7 +368,8 @@ Frequency: {task.frequency}
             )
 
         st.success(
-            f"Generated a schedule using up to {st.session_state.owner.available_minutes} available minutes."
+            f"Generated today's schedule using up to "
+            f"{st.session_state.owner.available_minutes} available minutes."
         )
 
 st.divider()
@@ -283,7 +379,7 @@ st.divider()
 # ---------------------------------------------------------
 
 st.subheader("Check Conflicts")
-st.caption("This checks for tasks scheduled at the exact same time.")
+st.caption("This checks for pending tasks scheduled at the exact same date and time.")
 
 if st.button("Check for conflicts"):
     conflicts = scheduler.detect_conflicts()
@@ -295,8 +391,9 @@ if st.button("Check for conflicts"):
 
         for task1, task2 in conflicts:
             st.write(
-                f"{task1.time}: {task1.title} for {task1.pet_name} conflicts with "
-                f"{task2.title} for {task2.pet_name}"
+                f"{task1.due_date} at {task1.time}: "
+                f"{task1.title} for {task1.pet_name} conflicts with "
+                f"{task2.title} for {task2.pet_name}."
             )
 
 st.divider()

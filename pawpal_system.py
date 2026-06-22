@@ -145,12 +145,24 @@ class Scheduler:
         """Get all tasks from the owner."""
         return self.owner.get_all_tasks()
 
+    def get_tasks_due_today(self):
+        """Return pending tasks due today."""
+        today = get_today_string()
+
+        return [
+            task for task in self.get_all_tasks()
+            if task.due_date == today and not task.completed
+        ]
+
     def sort_tasks_by_time(self):
-        """Sort all tasks by scheduled time."""
-        return sorted(self.get_all_tasks(), key=lambda task: task.time)
+        """Sort all tasks by due date and scheduled time."""
+        return sorted(
+            self.get_all_tasks(),
+            key=lambda task: (task.due_date, task.time)
+        )
 
     def sort_tasks_by_priority(self):
-        """Sort all tasks by priority."""
+        """Sort tasks due today by priority."""
         priority_order = {
             "high": 1,
             "medium": 2,
@@ -158,7 +170,7 @@ class Scheduler:
         }
 
         return sorted(
-            self.get_all_tasks(),
+            self.get_tasks_due_today(),
             key=lambda task: priority_order.get(task.priority, 4)
         )
 
@@ -177,7 +189,7 @@ class Scheduler:
         ]
 
     def generate_daily_plan(self, available_minutes=None):
-        """Generate a daily plan based on available time and priority."""
+        """Generate today's plan based on available time and priority."""
         if available_minutes is None:
             available_minutes = self.owner.available_minutes
 
@@ -186,9 +198,6 @@ class Scheduler:
         used_minutes = 0
 
         for task in sorted_tasks:
-            if task.completed:
-                continue
-
             if used_minutes + task.duration_minutes <= available_minutes:
                 daily_plan.append(task)
                 used_minutes += task.duration_minutes
@@ -196,18 +205,20 @@ class Scheduler:
         return daily_plan
 
     def detect_conflicts(self):
-        """Detect tasks scheduled at the same time."""
+        """Detect pending tasks scheduled at the same date and time."""
         conflicts = []
-        seen_times = {}
+        seen_slots = {}
 
         for task in self.get_all_tasks():
-            if task.time == "":
+            if task.completed or task.time == "":
                 continue
 
-            if task.time in seen_times:
-                conflicts.append((seen_times[task.time], task))
+            slot = (task.due_date, task.time)
+
+            if slot in seen_slots:
+                conflicts.append((seen_slots[slot], task))
             else:
-                seen_times[task.time] = task
+                seen_slots[slot] = task
 
         return conflicts
 

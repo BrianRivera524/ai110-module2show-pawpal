@@ -160,10 +160,49 @@ real time objects and comparing start and end times.
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+I used AI throughout the project for design brainstorming, code 
+structure, debugging, and reflection writing. At the beginning, 
+I used AI to help identify the main objects in the system and 
+translate them into a UML design. This helped me decide that Owner, 
+Pet, Task, and Scheduler should be separate classes with different 
+responsibilities.
+
+During implementation, I used AI to help turn my UML into Python dataclasses 
+and method stubs. After that, I used AI to improve the logic layer by adding 
+sorting, filtering, recurring tasks, conflict detection, and Streamlit 
+integration. I also used AI to review my code and point out possible 
+weak spots, such as time formatting, duplicate pet names, and simple 
+conflict detection.
+
+The most helpful prompts were specific questions about one part of the project 
+at a time. For example, asking how the Scheduler should retrieve all tasks from 
+the owner's pets was helpful because it clarified the relationship between 
+Scheduler, Owner, Pet, and Task. Asking how to simplify or improve a method 
+was also useful because it helped me compare readability with performance.
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+One moment where I did not fully accept an AI suggestion was when the AI 
+suggested making the scheduling system more advanced by using direct object 
+references for pets, stronger ownership rules, and more complex overlap-based 
+conflict detection. While those suggestions were technically better for a 
+larger system, I decided not to implement all of them because they would 
+make the project more complicated than necessary.
+
+Instead, I kept a simpler design where each task stores a pet_name, and the 
+scheduler checks for exact time conflicts. I evaluated the AI suggestion by 
+comparing it to the project requirements and asking whether the extra complexity 
+would actually improve the final project for this assignment. Since the 
+assignment focused on demonstrating OOP, sorting, filtering, recurring tasks, 
+and basic conflict detection, I decided that the simpler version was easier 
+to understand and still met the requirements.
+
+I verified the code by running main.py, testing the Streamlit app manually, and 
+creating automated tests with pytest. This helped me make sure the important 
+features worked instead of just accepting the AI's code without checking it.
 
 ---
 
@@ -174,10 +213,40 @@ real time objects and comparing start and end times.
 - What behaviors did you test?
 - Why were these tests important?
 
+I tested the main behaviors of the PawPal+ logic layer. I tested that a task can 
+be marked complete, that adding a task to a pet increases the pet's task count, 
+and that tasks can be sorted correctly by time. I also tested filtering by pet 
+and filtering by completion status.
+
+I also tested the smarter scheduling features. For recurring tasks, I tested that 
+completing a daily task creates a new task for the following day, and that 
+completing a weekly task creates a new task for the following week. I tested 
+that one-time tasks do not create a new task when completed. I also tested 
+conflict detection by creating two tasks at the exact same time and checking 
+that the scheduler identifies the conflict.
+
+These tests were important because they verify the core behavior of the system 
+without needing to manually click through the Streamlit app every time. They 
+also help catch bugs if I change the code later. For example, if sorting, 
+recurrence, or conflict detection breaks, the tests should make that clear.
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+
+I am fairly confident that my scheduler works correctly for the current project 
+requirements. The tests cover the main features, including task completion, task 
+addition, sorting by time, filtering, recurring task creation, and exact-time 
+conflict detection. I would rate my confidence around 4 out of 5 stars because 
+the system works for the intended use cases, but there are still some limitations.
+
+If I had more time, I would test more edge cases. For example, I would test 
+invalid time formats, duplicate task names for the same pet, empty owner data, 
+and more advanced scheduling conflicts where tasks overlap by duration instead 
+of starting at the exact same time. I would also test how the scheduler behaves 
+when the owner has very little available time and only some tasks can fit into 
+the daily plan.
 
 ---
 
@@ -187,10 +256,37 @@ real time objects and comparing start and end times.
 
 - What part of this project are you most satisfied with?
 
+The part I am most satisfied with is connecting the backend logic to the Streamlit UI. 
+At first, the app and the logic layer felt separate, but after using st.session_state 
+and the Scheduler class, the app became more realistic. Users can add pets, add tasks, 
+complete tasks, filter tasks, generate a schedule, and check conflicts from the interface. 
+I am also satisfied with the way the classes are separated. The Owner, Pet, Task, and 
+Scheduler classes each have a clear responsibility, which made the project easier to 
+build and debug. The recurring task logic was also a useful improvement because it made 
+the scheduler feel more like a real pet care planning tool.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+If I had another iteration, I would improve the conflict detection system. Right now, the 
+scheduler only detects tasks that start at the exact same time. A better version would 
+calculate each task's start and end time based on its duration, then detect overlapping 
+tasks. For example, it should detect that a task from 09:00 to 09:30 conflicts with another 
+task starting at 09:15. I would also improve time handling by using real Python datetime 
+or time objects instead of only storing time as strings. This would make sorting and conflict 
+detection more reliable. Another improvement would be allowing multiple pets and tasks to 
+be edited or removed directly in the Streamlit app instead of only resetting the app.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+One important thing I learned is that good system design depends on separating responsibilities clearly. 
+When each class has one main purpose, the project is easier to understand and extend. For example, 
+keeping pet information inside Pet, task information inside Task, and scheduling decisions inside 
+Scheduler made the code more organized. I also learned that while AI is useful for brainstorming and 
+improving code, but I still need to make the final decisions. Some AI suggestions were helpful, while 
+others were more complicated than what the project needed. This project helped me practice using AI 
+as a coding assistant while still checking the code, testing it, and deciding what design choices 
+made the most sense.

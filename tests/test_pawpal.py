@@ -274,3 +274,177 @@ def test_add_task_rejects_invalid_duration():
 
     with pytest.raises(ValueError):
         pet.add_task(task)
+
+
+def test_task_gets_today_due_date_by_default():
+    task = Task(
+        title="Breakfast",
+        duration_minutes=10,
+        priority="high",
+        pet_name="Mochi",
+        time="08:00"
+    )
+
+    assert task.due_date == date.today().isoformat()
+
+
+def test_generate_daily_plan_only_uses_todays_pending_tasks():
+    owner = Owner("Brian", available_minutes=60)
+    pet = Pet("Mochi", "dog")
+
+    tomorrow_date = (date.today() + timedelta(days=1)).isoformat()
+
+    today_task = Task(
+        title="Breakfast",
+        duration_minutes=10,
+        priority="high",
+        pet_name="Mochi",
+        time="08:00"
+    )
+
+    tomorrow_task = Task(
+        title="Tomorrow walk",
+        duration_minutes=20,
+        priority="medium",
+        pet_name="Mochi",
+        time="09:00",
+        due_date=tomorrow_date
+    )
+
+    pet.add_task(today_task)
+    pet.add_task(tomorrow_task)
+    owner.add_pet(pet)
+
+    scheduler = Scheduler(owner)
+    daily_plan = scheduler.generate_daily_plan()
+
+    assert len(daily_plan) == 1
+    assert daily_plan[0].title == "Breakfast"
+    assert daily_plan[0].due_date == date.today().isoformat()
+
+
+def test_generate_daily_plan_skips_completed_tasks():
+    owner = Owner("Brian", available_minutes=60)
+    pet = Pet("Mochi", "dog")
+
+    completed_task = Task(
+        title="Breakfast",
+        duration_minutes=10,
+        priority="high",
+        pet_name="Mochi",
+        time="08:00"
+    )
+
+    pending_task = Task(
+        title="Evening walk",
+        duration_minutes=20,
+        priority="medium",
+        pet_name="Mochi",
+        time="18:00"
+    )
+
+    completed_task.mark_complete()
+
+    pet.add_task(completed_task)
+    pet.add_task(pending_task)
+    owner.add_pet(pet)
+
+    scheduler = Scheduler(owner)
+    daily_plan = scheduler.generate_daily_plan()
+
+    assert len(daily_plan) == 1
+    assert daily_plan[0].title == "Evening walk"
+
+
+def test_generate_daily_plan_respects_available_minutes():
+    owner = Owner("Brian", available_minutes=25)
+    pet = Pet("Mochi", "dog")
+
+    pet.add_task(Task("Medication", 10, "high", "Mochi", "08:00"))
+    pet.add_task(Task("Long walk", 30, "medium", "Mochi", "09:00"))
+    pet.add_task(Task("Play time", 15, "low", "Mochi", "18:00"))
+
+    owner.add_pet(pet)
+
+    scheduler = Scheduler(owner)
+    daily_plan = scheduler.generate_daily_plan()
+
+    task_titles = [task.title for task in daily_plan]
+
+    assert task_titles == ["Medication", "Play time"]
+
+
+def test_detect_conflicts_ignores_completed_tasks():
+    owner = Owner("Brian")
+    pet = Pet("Mochi", "dog")
+
+    completed_task = Task("Breakfast", 10, "high", "Mochi", "08:00")
+    pending_task = Task("Morning walk", 20, "medium", "Mochi", "08:00")
+
+    completed_task.mark_complete()
+
+    pet.add_task(completed_task)
+    pet.add_task(pending_task)
+    owner.add_pet(pet)
+
+    scheduler = Scheduler(owner)
+    conflicts = scheduler.detect_conflicts()
+
+    assert conflicts == []
+
+
+def test_detect_conflicts_uses_due_date_and_time():
+    owner = Owner("Brian")
+    pet = Pet("Mochi", "dog")
+
+    tomorrow_date = (date.today() + timedelta(days=1)).isoformat()
+
+    today_task = Task(
+        title="Breakfast",
+        duration_minutes=10,
+        priority="high",
+        pet_name="Mochi",
+        time="08:00"
+    )
+
+    tomorrow_task = Task(
+        title="Tomorrow breakfast",
+        duration_minutes=10,
+        priority="high",
+        pet_name="Mochi",
+        time="08:00",
+        due_date=tomorrow_date
+    )
+
+    pet.add_task(today_task)
+    pet.add_task(tomorrow_task)
+    owner.add_pet(pet)
+
+    scheduler = Scheduler(owner)
+    conflicts = scheduler.detect_conflicts()
+
+    assert conflicts == []
+
+
+def test_mark_task_complete_returns_none_for_missing_task():
+    owner = Owner("Brian")
+    pet = Pet("Mochi", "dog")
+
+    pet.add_task(Task("Breakfast", 10, "high", "Mochi", "08:00"))
+    owner.add_pet(pet)
+
+    scheduler = Scheduler(owner)
+
+    completed_task, next_task = scheduler.mark_task_complete("Mochi", "Missing task")
+
+    assert completed_task is None
+    assert next_task is None
+
+
+def test_owner_rejects_duplicate_pet_names():
+    owner = Owner("Brian")
+
+    owner.add_pet(Pet("Mochi", "dog"))
+
+    with pytest.raises(ValueError):
+        owner.add_pet(Pet("Mochi", "cat"))
