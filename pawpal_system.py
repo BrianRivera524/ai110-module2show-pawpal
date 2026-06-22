@@ -1,30 +1,44 @@
 from dataclasses import dataclass, field
 
 
+def normalize_time(time_str):
+    """Convert time strings into 24-hour HH:MM format."""
+    if not time_str:
+        return ""
+
+    hour, minute = time_str.split(":")
+    return f"{int(hour):02d}:{int(minute):02d}"
+
+
 @dataclass
 class Task:
     title: str
     duration_minutes: int
     priority: str
+    pet_name: str
     time: str = ""
     frequency: str = "once"
     completed: bool = False
 
+    def __post_init__(self):
+        """Normalize the task time after the task is created."""
+        self.time = normalize_time(self.time)
+
     def mark_complete(self):
         """Mark this task as completed."""
-        pass
+        self.completed = True
 
     def mark_incomplete(self):
         """Mark this task as incomplete."""
-        pass
+        self.completed = False
 
     def is_recurring(self):
         """Return True if this task repeats daily or weekly."""
-        pass
+        return self.frequency in ["daily", "weekly"]
 
     def summary(self):
         """Return a readable summary of the task."""
-        pass
+        return f"{self.time} — {self.title} for {self.pet_name} ({self.duration_minutes} min) [priority: {self.priority}]"
 
 
 @dataclass
@@ -35,15 +49,21 @@ class Pet:
 
     def add_task(self, task):
         """Add a care task to this pet."""
-        pass
+        if task.duration_minutes <= 0:
+            raise ValueError("Task duration must be positive.")
+
+        if task.pet_name != self.name:
+            task.pet_name = self.name
+
+        self.tasks.append(task)
 
     def remove_task(self, task_title):
         """Remove a task from this pet by title."""
-        pass
+        self.tasks = [task for task in self.tasks if task.title != task_title]
 
     def get_tasks(self):
         """Return this pet's tasks."""
-        pass
+        return self.tasks
 
 
 @dataclass
@@ -54,45 +74,97 @@ class Owner:
 
     def add_pet(self, pet):
         """Add a pet to this owner."""
-        pass
+        for existing_pet in self.pets:
+            if existing_pet.name == pet.name:
+                raise ValueError("A pet with this name already exists.")
+
+        self.pets.append(pet)
 
     def get_pets(self):
         """Return all pets owned by this owner."""
-        pass
+        return self.pets
 
     def get_all_tasks(self):
         """Return all tasks across all pets."""
-        pass
+        all_tasks = []
+
+        for pet in self.pets:
+            all_tasks.extend(pet.get_tasks())
+
+        return all_tasks
 
 
 class Scheduler:
     def __init__(self, owner):
+        """Create a scheduler for one owner."""
         self.owner = owner
 
     def get_all_tasks(self):
         """Get all tasks from the owner."""
-        pass
+        return self.owner.get_all_tasks()
 
     def sort_tasks_by_time(self):
         """Sort all tasks by scheduled time."""
-        pass
+        return sorted(self.get_all_tasks(), key=lambda task: task.time)
 
     def sort_tasks_by_priority(self):
         """Sort all tasks by priority."""
-        pass
+        priority_order = {
+            "high": 1,
+            "medium": 2,
+            "low": 3
+        }
+
+        return sorted(
+            self.get_all_tasks(),
+            key=lambda task: priority_order.get(task.priority, 4)
+        )
 
     def filter_tasks_by_pet(self, pet_name):
         """Return tasks for one specific pet."""
-        pass
+        return [
+            task for task in self.get_all_tasks()
+            if task.pet_name == pet_name
+        ]
 
     def filter_tasks_by_status(self, completed):
         """Return tasks based on completion status."""
-        pass
+        return [
+            task for task in self.get_all_tasks()
+            if task.completed == completed
+        ]
 
-    def generate_daily_plan(self, available_minutes):
+    def generate_daily_plan(self, available_minutes=None):
         """Generate a daily plan based on available time and priority."""
-        pass
+        if available_minutes is None:
+            available_minutes = self.owner.available_minutes
+
+        sorted_tasks = self.sort_tasks_by_priority()
+        daily_plan = []
+        used_minutes = 0
+
+        for task in sorted_tasks:
+            if task.completed:
+                continue
+
+            if used_minutes + task.duration_minutes <= available_minutes:
+                daily_plan.append(task)
+                used_minutes += task.duration_minutes
+
+        return daily_plan
 
     def detect_conflicts(self):
         """Detect tasks scheduled at the same time."""
-        pass
+        conflicts = []
+        seen_times = {}
+
+        for task in self.get_all_tasks():
+            if task.time == "":
+                continue
+
+            if task.time in seen_times:
+                conflicts.append((seen_times[task.time], task))
+            else:
+                seen_times[task.time] = task
+
+        return conflicts
