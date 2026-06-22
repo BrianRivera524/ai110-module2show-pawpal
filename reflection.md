@@ -151,33 +151,6 @@ still demonstrating basic conflict detection. In a future
 version, I could improve this by converting task times into 
 real time objects and comparing start and end times.
 
-
-
-## Smarter Scheduling
-
-PawPal+ includes several smarter scheduling features to make the app more useful for a pet owner.
-
-| Feature  |  Method  |  Description  |
-| -------- | -------- | ------------- |
-| Sort tasks by time | 'Scheduler.sort_tasks_by_time()' | Sorts all tasks by their scheduled time using 24-hour 'HH:MM' format. This helps display the daily schedule in the correct order. |
-
-| Sort tasks by priority | 'Scheduler.sort_tasks_by_priority()' | Sorts tasks so higher-priority care tasks, such as feeding or medication, are considered before lower-priority tasks. |
-
-| Filter tasks by pet | 'Scheduler.filter_tasks_by_pet(pet_name)' | Returns only the tasks that belong to a selected pet. This helps the owner view one pet's care plan at a time. |
-
-| Filter tasks by status | 'Scheduler.filter_tasks_by_status(completed)' | Returns either completed or pending tasks. This helps the owner track what still needs to be done. |
-
-| Generate daily plan | 'Scheduler.generate_daily_plan()' | Builds a daily plan using priority, task duration, completion status, and the owner's available care time. |
-
-| Conflict detection | 'Scheduler.detect_conflicts()' | Checks for tasks scheduled at the exact same time and returns conflicts as warnings instead of crashing the program. |
-
-| Recurring tasks | 'Task.create_next_occurrence()' and 'Scheduler.mark_task_complete()' | When a daily or weekly task is completed, the scheduler creates a new copy of that task for the next due date. |
-
-One current tradeoff is that conflict detection only checks for exact time matches. 
-For example, it detects two tasks both scheduled at '09:00', but it does not detect 
-overlapping durations such as a 30-minute task at '09:00' and another task at '09:15'. 
-This keeps the first version simpler and easier to understand.
-
 ---
 
 ## 3. AI Collaboration
